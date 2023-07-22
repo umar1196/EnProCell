@@ -1,0 +1,86 @@
+---
+title: "preprocessing"
+author: "umar"
+date: "2023-06-13"
+output: html_document
+---
+
+This file use the data and steps are given below:
+- convert the data to seurat object and data is normalized
+- select the 2000 variable genes
+- store the preprocessed data in csv file.
+
+```{r}
+exp_mat = read.csv("data/Filtered_Baron_HumanPancreas_data.csv")
+class(exp_mat)
+dim(exp_mat)
+head(exp_mat)
+```
+
+```{r}
+exp_mat$X <- NULL
+head(exp_mat)
+```
+
+```{r}
+exp_mat = as.data.frame(t(exp_mat))
+head(exp_mat)
+```
+
+
+```{r}
+label = read.csv("data/Labels.csv")
+class(label)
+dim(label)
+head(label)
+label['x']
+```
+
+```{r}
+label$x <- gsub("[\\\\,]", " ", label$x)
+
+# Split the resulting string into a character vector
+labels <- unlist(strsplit(label$x, " "))
+
+# Print the resulting vector
+labels
+```
+
+converting the expression matrix to seurat object.
+```{r}
+library(Seurat)
+obj = CreateSeuratObject(counts = exp_mat, project = "panc_baron")
+obj[["cell_type"]] = labels
+str(obj)
+```
+
+```{r}
+
+obj <- NormalizeData(obj, normalization.method = "LogNormalize", scale.factor = 10000)
+
+obj <- FindVariableFeatures(obj, selection.method = "vst", nfeatures = 2000)
+```
+
+```{r}
+top2000 <- head(VariableFeatures(obj), 2000)
+str(top2000)
+
+exp = obj@assays$RNA@data[top2000,]
+head(exp)
+
+dim(exp)
+
+df = as.data.frame(exp)
+head(df)
+```
+
+taking the transpose and saving it in csv file
+```{r}
+df = as.data.frame(t(df))
+df
+```
+
+```{r}
+write.csv(df,file=paste0('normalized_sc_2000vg_baron.csv'),quote=F)
+```
+
